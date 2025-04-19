@@ -2,6 +2,9 @@ import os
 import disnake
 from disnake.ext import commands
 from dotenv import load_dotenv
+import tensorflow as tf
+import numpy as np
+
 
 load_dotenv()
 
@@ -22,9 +25,17 @@ async def cat_or_dog(inter:disnake.ApplicationCommandInteraction,image:disnake.A
         await inter.followup.send("Invalid attachment type")
         return 
     try:
-        await inter.followup.send(f"heres your image {image.url}")
+        await image.save(f"./{image.filename}")
+        loaded_image = tf.keras.utils.load_img(f"./{image.filename}",target_size=(300,300))
+        loaded_image = tf.keras.utils.img_to_array(loaded_image)
+        model = tf.keras.models.load_model("./base_cat_dog_cnn.keras")
+        predict = model.predict(np.array([loaded_image]))
+        value = "cat" if predict<0.5 else "dog"
+        os.remove(f"./{image.filename}")
+        await inter.followup.send(f"The image {image.url} is a {value}")
     except Exception as e:
         print(f"error occured {e}")
+        await inter.followup.send("error occured")
 
 
 @bot.event
